@@ -1,0 +1,9 @@
+*.swp
+*.swo
+*.swl
+*.swn
+*.swm
+*.swa
+*.out
+a.out
+vgcore.*
