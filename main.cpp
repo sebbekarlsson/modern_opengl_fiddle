@@ -2,10 +2,14 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
+#include "ResourceManager/ResourceManager.h"
 
 using namespace std;
 
 int main(int xarg, char** args) {
+
+    ResourceManager::loadFile("vertex_shader.cpp");
+    ResourceManager::loadFile("fragment_shader.cpp");
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -24,26 +28,10 @@ int main(int xarg, char** args) {
     glewInit();
 
     // Shader sources
-    const GLchar* vertexSource =
-        "#version 150\n"
-        "in vec2 position;\n"
-        "in vec3 color;\n"
-        "out vec3 Color;\n"
-        "void main()"
-        "{"
-        "Color = color;"
-        "gl_Position = vec4(position, 0.0, 1.0);"
-        "}";
-
-    const GLchar* fragmentSource =
-        "#version 150\n"
-        "in vec3 Color;\n"
-        "out vec4 outColor;\n"
-        "void main()"
-        "{"
-        "outColor = vec4(Color, 1.0);"
-        "}";
-
+    const std::string vertex_str = ResourceManager::get("vertex_shader.cpp");
+    const std::string fragment_str = ResourceManager::get("fragment_shader.cpp");
+    const GLchar* vertexSource = vertex_str.c_str();
+    const GLchar* fragmentSource = fragment_str.c_str();
 
     float vertices[] = {
         0.0f,  0.5f, 1.0f, 0.0f, 0.0f, // Vertex 1: Red
