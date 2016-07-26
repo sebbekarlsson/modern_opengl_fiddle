@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
+#include "lodepng/lodepng.h"
 #include "ResourceManager/ResourceManager.h"
 
 using namespace std;
@@ -10,6 +11,19 @@ int main(int xarg, char** args) {
 
     ResourceManager::loadFile("vertex_shader.cpp");
     ResourceManager::loadFile("fragment_shader.cpp");
+
+    std::vector<unsigned char> image;
+    unsigned width, height;
+    unsigned error = lodepng::decode(image, width, height, "player.png");
+    size_t u2 = 1;
+    size_t v2 = 1;
+
+    // If there's an error, display it.
+    if(error != 0)
+    {
+        std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+        return 1;
+    }
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -25,7 +39,9 @@ int main(int xarg, char** args) {
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     glewExperimental = GL_TRUE;
-    glewInit();
+    if (glewInit()) {
+        cout << "Could not initialize GLEW" << endl;
+    }
 
     // Shader sources
     const std::string vertex_str = ResourceManager::get("vertex_shader.cpp");
@@ -33,43 +49,10 @@ int main(int xarg, char** args) {
     const GLchar* vertexSource = vertex_str.c_str();
     const GLchar* fragmentSource = fragment_str.c_str();
 
-    float vertices[] = {
-        0.0f,  0.5f, 1.0f, 0.0f, 0.0f, // Vertex 1: Red
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // Vertex 2: Green
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f  // Vertex 3: Blue
-    };
-
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
-
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-    glCompileShader(fragmentShader);
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
-
-    // Specify the layout of the vertex data
-    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
-
-    GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-    glEnableVertexAttribArray(colAttrib);
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+    glEnable(GL_TEXTURE_2D);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_NEAREST = no smoothing
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, u2, v2, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
 
     SDL_Event e;
     while(e.type != SDL_QUIT) {
@@ -77,8 +60,6 @@ int main(int xarg, char** args) {
                 e.key.keysym.sym == SDLK_ESCAPE) { break; }
 
         glClear(GL_COLOR_BUFFER_BIT);
-        //glUniform3f(uniColor, 1.0f, 0.0f, 0.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
         SDL_PollEvent(&e);

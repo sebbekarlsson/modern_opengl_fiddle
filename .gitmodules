@@ -1,3 +1,6 @@
 [submodule "ResourceManager"]
 	path = ResourceManager
 	url = git@github.com:sebbekarlsson/ResourceManager.git
+[submodule "lodepng"]
+	path = lodepng
+	url = https://github.com/lvandeve/lodepng.git
