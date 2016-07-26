@@ -90,8 +90,20 @@ int main(int xarg, char** args) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);  
     glBindVertexArray(0);
 
-    GLuint textureID = 0;
+
+    // Create one OpenGL texture
+    GLuint textureID;
     glGenTextures(1, &textureID);
+
+    // "Bind" the newly created texture : all future texture functions will modify this texture
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Give the image to OpenGL
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, textureID);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
 
     SDL_Event e;
     while(e.type != SDL_QUIT) {
@@ -100,6 +112,7 @@ int main(int xarg, char** args) {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         SDL_GL_SwapWindow(window);
         SDL_PollEvent(&e);
     }
