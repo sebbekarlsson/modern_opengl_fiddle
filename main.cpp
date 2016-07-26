@@ -4,6 +4,9 @@
 #include <iostream>
 #include "ResourceManager/ResourceManager.h"
 #include <SOIL/SOIL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
 
@@ -45,10 +48,10 @@ int main(int xarg, char** args) {
 
     GLfloat vertices[] = {
     //  Position      Color             Texcoords
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
-        -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+        0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+        0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+        0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+        0.0f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -100,6 +103,9 @@ int main(int xarg, char** args) {
     glEnableVertexAttribArray(texAttrib);
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
 
+    glm::mat4 trans;
+    float xx = 0.0f;
+
     // Load texture
     GLuint tex;
     glGenTextures(1, &tex);
@@ -123,6 +129,15 @@ int main(int xarg, char** args) {
 
         glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+
+        trans = glm::translate(glm::mat4(1.f), glm::vec3( xx, 0.0f, 1.0f));
+        trans = glm::rotate(trans, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        xx += 0.001f;
+
+        GLint uniTrans = glGetUniformLocation(shaderProgram, "trans");
+        glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(trans));
+
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         SDL_GL_SwapWindow(window);
