@@ -5,6 +5,8 @@
 #include "lodepng/lodepng.h"
 #include "ResourceManager/ResourceManager.h"
 #include <glm/glm.hpp>
+#include <SOIL/SOIL.h>
+
 
 using namespace std;
 
@@ -64,46 +66,29 @@ int main(int xarg, char** args) {
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
-    // Configure VAO/VBO
-    GLuint VBO;
-    GLuint VAO;
-    GLfloat vertices[] = { 
-        // Pos      // Tex
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f, 
+    int w, h;
+    unsigned char* img =
+        SOIL_load_image("player.png", &w, &h, 0, SOIL_LOAD_RGB);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
+            GL_UNSIGNED_BYTE, img);
 
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 0.0f
-    };
+    SOIL_free_image_data(img);
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    GLuint tex;
+    glGenTextures(1, &tex);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindTexture(GL_TEXTURE_2D, tex);
 
-    glBindVertexArray(VAO);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);  
-    glBindVertexArray(0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+    float color[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color);
 
-    // Create one OpenGL texture
-    GLuint textureID;
-    glGenTextures(1, &textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // "Bind" the newly created texture : all future texture functions will modify this texture
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    // Give the image to OpenGL
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, textureID);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     SDL_Event e;
     while(e.type != SDL_QUIT) {
@@ -112,7 +97,6 @@ int main(int xarg, char** args) {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         SDL_GL_SwapWindow(window);
         SDL_PollEvent(&e);
     }

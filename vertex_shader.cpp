@@ -6,8 +6,14 @@ out vec2 TexCoords;
 uniform mat4 model;
 uniform mat4 projection;
 
+in vec2 texcoord;
+
+out vec3 Color;
+out vec2 Texcoord;
+
 void main()
 {
     TexCoords = vertex.zw;
+    Texcoord = texcoord;
     gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0);
 }

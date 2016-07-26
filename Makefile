@@ -1,4 +1,4 @@
-FLAGZ=`pkg-config --libs sdl2` -lGL -lglut -lGLU -lGLEW -DGLEW_STATIC -g
+FLAGZ=`pkg-config --libs sdl2` -lGL -lglut -lGLU -lGLEW -lSOIL -DGLEW_STATIC -g
 
 
 output:\
