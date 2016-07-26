@@ -2,11 +2,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
-#include "lodepng/lodepng.h"
 #include "ResourceManager/ResourceManager.h"
-#include <glm/glm.hpp>
 #include <SOIL/SOIL.h>
-
 
 using namespace std;
 
@@ -14,19 +11,6 @@ int main(int xarg, char** args) {
 
     ResourceManager::loadFile("vertex_shader.cpp");
     ResourceManager::loadFile("fragment_shader.cpp");
-
-    std::vector<unsigned char> image;
-    unsigned width, height;
-    unsigned error = lodepng::decode(image, width, height, "player.png");
-    size_t u2 = 1;
-    size_t v2 = 1;
-
-    // If there's an error, display it.
-    if(error != 0)
-    {
-        std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
-        return 1;
-    }
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -42,15 +26,47 @@ int main(int xarg, char** args) {
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     glewExperimental = GL_TRUE;
-    if (glewInit()) {
-        cout << "Could not initialize GLEW" << endl;
-    }
+    glewInit();
 
     // Shader sources
     const std::string vertex_str = ResourceManager::get("vertex_shader.cpp");
     const std::string fragment_str = ResourceManager::get("fragment_shader.cpp");
     const GLchar* vertexSource = vertex_str.c_str();
     const GLchar* fragmentSource = fragment_str.c_str();
+
+    float vertices[] = {
+        //  Position      Color             Texcoords
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+        0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+        -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+    };
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    int width, height;
+    unsigned char* image =
+        SOIL_load_image("player.png", &width, &height, 0, SOIL_LOAD_RGB);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+            GL_UNSIGNED_BYTE, image);
+
+    SOIL_free_image_data(image);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
@@ -66,29 +82,24 @@ int main(int xarg, char** args) {
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
-    int w, h;
-    unsigned char* img =
-        SOIL_load_image("player.png", &w, &h, 0, SOIL_LOAD_RGB);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
-            GL_UNSIGNED_BYTE, img);
+    // Specify the layout of the vertex data
+    GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+    glEnableVertexAttribArray(posAttrib);
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
 
-    SOIL_free_image_data(img);
+    GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
+    glEnableVertexAttribArray(colAttrib);
+    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
 
-    GLuint tex;
-    glGenTextures(1, &tex);
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE,
+            7*sizeof(float), 0);
+    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE,
+            7*sizeof(float), (void*)(2*sizeof(float)));
 
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    float color[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glGenerateMipmap(GL_TEXTURE_2D);
+    GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+    glEnableVertexAttribArray(texAttrib);
+    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE,
+            7*sizeof(float), (void*)(5*sizeof(float)));
 
     SDL_Event e;
     while(e.type != SDL_QUIT) {
@@ -96,6 +107,8 @@ int main(int xarg, char** args) {
                 e.key.keysym.sym == SDLK_ESCAPE) { break; }
 
         glClear(GL_COLOR_BUFFER_BIT);
+        //glUniform3f(uniColor, 1.0f, 0.0f, 0.0f);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         SDL_GL_SwapWindow(window);
         SDL_PollEvent(&e);
