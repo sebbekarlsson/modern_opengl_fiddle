@@ -4,6 +4,7 @@
 #include <iostream>
 #include "lodepng/lodepng.h"
 #include "ResourceManager/ResourceManager.h"
+#include <glm/glm.hpp>
 
 using namespace std;
 
@@ -49,31 +50,6 @@ int main(int xarg, char** args) {
     const GLchar* vertexSource = vertex_str.c_str();
     const GLchar* fragmentSource = fragment_str.c_str();
 
-    float x, y = 0.0f;
-
-    GLfloat Vertices[] = {(float)x, (float)y, 0,
-        (float)x + width, (float)y, 0,
-        (float)x + (float)width, (float)y + (float)height, 0,
-        (float)x, (float)y + (float)height, 0};
-    GLfloat TexCoord[] = {0, 0,
-        1, 0,
-        1, 1,
-        0, 1,
-    };
-    GLubyte indices[] = {0,1,2, 
-        0,2,3};
-
-
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    glEnable(GL_TEXTURE_2D);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_NEAREST = no smoothing
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, 4, u2, v2, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
-
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
     glCompileShader(vertexShader);
@@ -83,18 +59,39 @@ int main(int xarg, char** args) {
     glCompileShader(fragmentShader);
 
     GLuint shaderProgram = glCreateProgram();
-
-    GLint posAttrib = glGetAttribLocation(shaderProgram, "myTextureSampler");
-    glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, textureID, 0);
-
-
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
+    // Configure VAO/VBO
+    GLuint VBO;
+    GLuint VAO;
+    GLfloat vertices[] = { 
+        // Pos      // Tex
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 
 
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindVertexArray(VAO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  
+    glBindVertexArray(0);
+
+    GLuint textureID = 0;
+    glGenTextures(1, &textureID);
 
     SDL_Event e;
     while(e.type != SDL_QUIT) {
@@ -102,20 +99,6 @@ int main(int xarg, char** args) {
                 e.key.keysym.sym == SDLK_ESCAPE) { break; }
 
         glClear(GL_COLOR_BUFFER_BIT);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureID);
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 0, Vertices);
-
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glTexCoordPointer(2, GL_FLOAT, 0, TexCoord);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, indices);
-
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-        glDisableClientState(GL_VERTEX_ARRAY);
 
         SDL_GL_SwapWindow(window);
         SDL_PollEvent(&e);
